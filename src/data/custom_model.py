@@ -16,6 +16,19 @@ class DummyLayerNorm(nn.Module):
     def forward(self, x):
         return x
     
+class LayerNorm(nn.Module):
+    def __init__(self, emb_dim):
+        super().__init__()
+        self.eps = 1e-5 # to prevent division by zero during normalization
+        self.scale = nn.Parameter(torch.ones(emb_dim)) # trainable parameters
+        self.shift = nn.Parameter(torch.zeros(emb_dim)) # trainable parameters
+
+    def forward(self, x):
+        mean = x.mean(dim=-1, keepdim=True)
+        var = x.var(dim=-1, keepdim=True, unbiased=False)
+        norm_x = (x - mean) / torch.sqrt(var + self.eps)
+        return self.scale * norm_x + self.shift
+    
 class DummyGPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
