@@ -3,20 +3,6 @@ import torch.nn as nn
 
 from custom_attention import MultiHeadAttention
 
-class DummyTransformerBlock(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-
-    def forward(self, x):
-        return x
-    
-class DummyLayerNorm(nn.Module):
-    def __init__(self, normalized_shape, eps=1e-5):
-        super().__init__()
-
-    def forward(self, x):
-        return x
-
 class GELU(nn.Module):
     def __init__(self):
         super().__init__()
@@ -29,16 +15,16 @@ class GELU(nn.Module):
     
 class FeedForward(nn.Module):
     def __init__(self, cfg):
-        super().__inint__()
+        super().__init__()
         self.layers = nn.Sequential(
             nn.Linear(cfg["emb_dim"], 4 * cfg['emb_dim']),
             GELU(),
-            nn.linear(4 * cfg['emb_dim'], cfg['emb_dim'])
+            nn.Linear(4 * cfg['emb_dim'], cfg['emb_dim'])
         )
 
     def forward(self, x):
-        return self.layer(x)
-
+        return self.layers(x)
+    
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
@@ -52,12 +38,12 @@ class LayerNorm(nn.Module):
         norm_x = (x - mean) / torch.sqrt(var + self.eps)
         return self.scale * norm_x + self.shift
     
-class TransformerBlack(nn.Module):
+class TransformerBlock(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.att = MultiHeadAttention(
             d_in=cfg["emb_dim"],
-            d_out=cfg['dim_emb'],
+            d_out=cfg['emb_dim'],
             context_length=cfg["context_length"],
             num_heads=cfg["n_heads"],
             dropout=cfg["drop_rate"],
@@ -76,7 +62,7 @@ class TransformerBlack(nn.Module):
         x = x + shortcut
 
         shortcut = x
-        x = self.norm2
+        x = self.norm2(x)
         x = self.ff(x)
         x = self.drop_shortcut(x)
         x = x + shortcut
@@ -103,16 +89,16 @@ class ExampleDeepNeuralNetwork(nn.Module):
                 x = layer_output
         return x
 
-class DummyGPTModel(nn.Module):
+class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
         self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
         self.trf_blocks = nn.Sequential(
-            * [DummyTransformerBlock(cfg) for _ in range(cfg["n_layers"])]
+            * [TransformerBlock(cfg) for _ in range(cfg["n_layers"])]
         )
-        self.final_norm = DummyLayerNorm(cfg["emb_dim"])
+        self.final_norm = LayerNorm(cfg["emb_dim"])
         self.out_head = nn.Linear(
             cfg["emb_dim"], cfg["vocab_size"], bias=False
         )
